@@ -14,7 +14,7 @@ class Client {
 	private static Socket clientSocket;
 	private static DataOutputStream outToServer;
 	private static BufferedReader inFromServer;
-	private static boolean autoFlip = false;// set to false to prompt client to send a card
+	private static boolean autoFlip = true;// set to false to prompt client to send a card
 
 	public static void main(String args[]) throws Exception {
 
@@ -75,17 +75,4 @@ class Client {
 		return Client.inFromServer.readLine();
 	}
 
-	// asks user if they want their cards to be flipped automatically
-	/*
-	 * private static boolean getAuto() { Scanner scan = new Scanner(System.in);
-	 * char temp; System.out.
-	 * print("Would you like to have the cards automatically flipped? (Y/N)"); temp
-	 * = Character.toUpperCase(scan.next().charAt(0)); while (temp != 'Y' && temp !=
-	 * 'N') { System.out.print("error. please input either 'Y' or 'N'\n"); temp =
-	 * Character.toUpperCase(scan.next().charAt(0)); } scan.close(); if (temp ==
-	 * 'Y') { return true; } else { return false; }
-	 * 
-	 * 
-	 * }
-	 */
 }

@@ -229,10 +229,13 @@ public class Server {
 		if (Server.p1.length() < n) {
 			if ((Server.p1.length() + Server.p1discard.length()) < n) {
 				// game over
-				response = "Game over. P1 ran out of cards and P2 wins! \n";
-				System.out.print(response + "press enter to end the program.\n");
-				Server.send(response, 3);
-				System.in.read();
+				response = "Game over. P1 ran out of cards and P2 wins!\n";
+				System.out.print(response);
+				try {
+					Server.send(response, 3);
+				} catch (Exception IOException) {
+					System.out.print("\nTerminating program");
+				}
 				System.exit(0);
 			} else {
 				response = "Not enough cards. Reshuffling P1's discard into thier hand";
@@ -244,10 +247,13 @@ public class Server {
 		if (Server.p2.length() < n) {
 			if ((Server.p2.length() + Server.p2discard.length()) < n) {
 				// game over
-				response = "Game over. P2 ran out of cards and P1 wins! \n";
-				System.out.print(response + "press enter to end the program.\n");
-				Server.send(response, 3);
-				System.in.read();
+				response = "Game over. P2 ran out of cards and P1 wins!\n";
+				System.out.print(response);
+				try {
+					Server.send(response, 3);
+				} catch (Exception IOException) {
+					System.out.print("\nTerminating program");
+				}
 				System.exit(0);
 			} else {
 				response = "Not enough cards. Reshuffling P1's discard into thier hand";

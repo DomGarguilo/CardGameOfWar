@@ -15,8 +15,8 @@ public class Server {
 	private static DataOutputStream outClient_1, outClient_2;
 	private static BufferedReader inClient_1, inClient_2;
 	private static Integer port = 1337;
-	private static String welcomeMsg = "Welcome to the card game 'War'.";
-	private static String ip;
+	private static String welcomeMsg = "Welcome to the card game 'War'.\n";
+	//private static String ip;
 
 	public static void main(String[] args) throws InterruptedException, IOException {
 
@@ -31,12 +31,27 @@ public class Server {
 
 		// Printing welcome message
 		System.out.println(Server.welcomeMsg);
+		
+		System.out.print("Server network information:\n");
+		@SuppressWarnings("rawtypes")
+		Enumeration e = NetworkInterface.getNetworkInterfaces();
+		while(e.hasMoreElements())
+		{
+		    NetworkInterface n = (NetworkInterface) e.nextElement();
+		    @SuppressWarnings("rawtypes")
+			Enumeration ee = n.getInetAddresses();
+		    while (ee.hasMoreElements())
+		    {
+		        InetAddress i = (InetAddress) ee.nextElement();
+		        System.out.println(i.getHostAddress());
+		    }
+		}
 
 		// Setting up server socket on specified port
 		Server.port = Server.getPort();
 		Server.welcomeSocket = new ServerSocket(Server.port);
-		Server.ip = getIp();
-		System.out.println("\nOk, we're up and running on IP: " + Server.ip + "\nAnd port: " + Server.welcomeSocket.getLocalPort() + " ...");
+		//Server.ip = getIp();
+		System.out.println("\nOk, we're up and running on port: " + Server.welcomeSocket.getLocalPort() + " ...");
 
 		// Dealing cards to each player
 		for (int j = 0; j < 26; j++) { // deal first half of the deck to p1
@@ -289,7 +304,7 @@ public class Server {
 		Scanner sc = new Scanner(System.in);
 
 		do {
-			System.out.print("Please select a port by entering an integer value between 1 and 65535 or\n");
+			System.out.print("\nPlease select a port by entering an integer value between 1 and 65535 or\n");
 			System.out.print("insert \"0\" in order to continue with the default port (" + Server.port + "): ");
 			input = sc.nextInt();
 

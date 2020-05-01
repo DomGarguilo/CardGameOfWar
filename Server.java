@@ -16,11 +16,9 @@ public class Server {
 	private static BufferedReader inClient_1, inClient_2;
 	private static Integer port = 1337;
 	private static String welcomeMsg = "Welcome to the card game 'War'.\n";
-	//private static String ip;
+	// private static String ip;
 
 	public static void main(String[] args) throws InterruptedException, IOException {
-
-		
 
 		// initialize the decks
 		master = new Deck(true);
@@ -31,26 +29,23 @@ public class Server {
 
 		// Printing welcome message
 		System.out.println(Server.welcomeMsg);
-		
+
 		System.out.print("Server network information:\n");
 		@SuppressWarnings("rawtypes")
 		Enumeration e = NetworkInterface.getNetworkInterfaces();
-		while(e.hasMoreElements())
-		{
-		    NetworkInterface n = (NetworkInterface) e.nextElement();
-		    @SuppressWarnings("rawtypes")
+		while (e.hasMoreElements()) {
+			NetworkInterface n = (NetworkInterface) e.nextElement();
+			@SuppressWarnings("rawtypes")
 			Enumeration ee = n.getInetAddresses();
-		    while (ee.hasMoreElements())
-		    {
-		        InetAddress i = (InetAddress) ee.nextElement();
-		        System.out.println(i.getHostAddress());
-		    }
+			while (ee.hasMoreElements()) {
+				InetAddress i = (InetAddress) ee.nextElement();
+				System.out.println(i.getHostAddress());
+			}
 		}
 
 		// Setting up server socket on specified port
 		Server.port = Server.getPort();
 		Server.welcomeSocket = new ServerSocket(Server.port);
-		//Server.ip = getIp();
 		System.out.println("\nOk, we're up and running on port: " + Server.welcomeSocket.getLocalPort() + " ...");
 
 		// Dealing cards to each player
@@ -64,21 +59,23 @@ public class Server {
 		// Player one socket, data in, and data out set up
 		Server.client_1 = Server.welcomeSocket.accept();
 		if (Server.client_1.isConnected()) {
-			System.out.println("\nPlayer one (" + (Server.client_1.getLocalAddress().toString()).substring(1) + ":"
-					+ Server.client_1.getLocalPort() + ") has joined ... waiting for player two ...");
+			System.out.println("\nPlayer one (" + (Server.client_1.getRemoteSocketAddress().toString()).substring(1)
+					+ ":" + Server.client_1.getLocalPort() + ") has joined ... waiting for player two ...");
 		}
 		Server.outClient_1 = new DataOutputStream(Server.client_1.getOutputStream());
 		Server.inClient_1 = new BufferedReader(new InputStreamReader(Server.client_1.getInputStream()));
 
-		System.out.println(Server.recieve(1)); // input test
-		Server.send("Server to client 1\n", 1); // output test
-		System.out.print("S2C1 sent, P1 ready\n");
+		/*
+		 * System.out.println(Server.recieve(1)); // input test
+		 * Server.send("Server to client 1\n", 1); // output test
+		 * System.out.print("S2C1 sent, P1 ready\n");
+		 */
 
 		// Player two socket, data in, and data out set up
 		Server.client_2 = Server.welcomeSocket.accept();
 		if (Server.client_2.isConnected()) {
-			System.out.println("Player two (" + (Server.client_2.getLocalAddress().toString()).substring(1) + ":"
-					+ Server.client_1.getLocalPort() + ") has joined ... lets start ...");
+			System.out.println("Player two (" + (Server.client_2.getRemoteSocketAddress().toString()).substring(1)
+					+ ") has joined ... lets start ...");
 		}
 		Server.outClient_2 = new DataOutputStream(Server.client_2.getOutputStream());
 		Server.inClient_2 = new BufferedReader(new InputStreamReader(Server.client_2.getInputStream()));

@@ -34,10 +34,12 @@ class Client {
 		outToServer = new DataOutputStream(clientSocket.getOutputStream());
 		inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-		Client.send("Client to server test" + "\n"); // output test
-		System.out.print("\nClient to server test msg sent\n");
-		response = Client.recieve(); // input test
-		System.out.print("Test msg from server recieved: " + response + "\n");
+		/*
+		 * Client.send("Client to server test" + "\n"); // output test
+		 * System.out.print("\nClient to server test msg sent\n"); response =
+		 * Client.recieve(); // input test
+		 * System.out.print("Test msg from server recieved: " + response + "\n");
+		 */
 
 		System.out.print("Ready to begin. Press enter to start game");
 		System.in.read();
@@ -124,11 +126,11 @@ class Client {
 			input = Character.toUpperCase(input);
 			if (input == 'Y') {
 				result = true;
-				System.out.print("Autoflip enabled");
+				System.out.print("Autoflip enabled\n");
 			}
 			if (input == 'N') {
 				result = false;
-				System.out.print("Autoflip disabled");
+				System.out.print("Autoflip disabled\n");
 			}
 		} while (input != 'Y' && input != 'N');
 		return result;

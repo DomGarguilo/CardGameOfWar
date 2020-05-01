@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Enumeration;
 import java.util.Scanner;
 
 public class Server {
@@ -15,8 +16,11 @@ public class Server {
 	private static BufferedReader inClient_1, inClient_2;
 	private static Integer port = 1337;
 	private static String welcomeMsg = "Welcome to the card game 'War'.";
+	private static String ip;
 
 	public static void main(String[] args) throws InterruptedException, IOException {
+
+		
 
 		// initialize the decks
 		master = new Deck(true);
@@ -31,13 +35,14 @@ public class Server {
 		// Setting up server socket on specified port
 		Server.port = Server.getPort();
 		Server.welcomeSocket = new ServerSocket(Server.port);
-		System.out.println("\nOk, we're up and running on port " + Server.welcomeSocket.getLocalPort() + " ...");
+		Server.ip = getIp();
+		System.out.println("\nOk, we're up and running on IP: " + Server.ip + "\nAnd port: " + Server.welcomeSocket.getLocalPort() + " ...");
 
 		// Dealing cards to each player
-		for (int i = 0; i < 26; i++) { // deal first half of the deck to p1
+		for (int j = 0; j < 26; j++) { // deal first half of the deck to p1
 			Server.p1.push(Server.master.pop());
 		}
-		for (int i = 0; i < 26; i++) { // deal first half of the deck to p1
+		for (int j = 0; j < 26; j++) { // deal first half of the deck to p1
 			Server.p2.push(Server.master.pop());
 		}
 
@@ -148,6 +153,16 @@ public class Server {
 		}
 	}
 
+	@SuppressWarnings("rawtypes")
+	public static String getIp() throws SocketException {
+		Enumeration e = NetworkInterface.getNetworkInterfaces();
+		NetworkInterface n = (NetworkInterface) e.nextElement();
+		Enumeration ee = n.getInetAddresses();
+		InetAddress i = (InetAddress) ee.nextElement();
+		i = (InetAddress) ee.nextElement();
+		return i.getHostAddress();
+	}
+
 	// function to determine which player wins a round
 	// input: 2 strings to represent the cards
 	// output: boolean 1 for P1 win and 0 for P2 win
@@ -256,7 +271,7 @@ public class Server {
 				}
 				System.exit(0);
 			} else {
-				response = "Not enough cards. Reshuffling P1's discard into thier hand";
+				response = "Not enough cards. Reshuffling P1's discard into thier hand\n";
 				Server.send(response, 2);
 				Server.p2.reShuffle(Server.p2discard);
 			}
@@ -275,7 +290,7 @@ public class Server {
 
 		do {
 			System.out.print("Please select a port by entering an integer value between 1 and 65535 or\n");
-			System.out.print("insert \"0\" in order to continue with the default setting (" + Server.port + "): ");
+			System.out.print("insert \"0\" in order to continue with the default port (" + Server.port + "): ");
 			input = sc.nextInt();
 
 		} while (input != 0 && !Server.validPort(input));

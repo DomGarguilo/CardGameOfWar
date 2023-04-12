@@ -63,13 +63,15 @@ public class Server {
 					+ ":" + Server.client_1.getLocalPort() + ") has joined ... waiting for player two ...");
 		}
 		Server.outClient_1 = new DataOutputStream(Server.client_1.getOutputStream());
+		System.out.println("Successfully set up outgoing comms with client 1");
 		Server.inClient_1 = new BufferedReader(new InputStreamReader(Server.client_1.getInputStream()));
+		System.out.println("Successfully set up incoming comms with client 1");
 
-		/*
-		 * System.out.println(Server.recieve(1)); // input test
-		 * Server.send("Server to client 1\n", 1); // output test
-		 * System.out.print("S2C1 sent, P1 ready\n");
-		 */
+		// Testing input and output to and from client 2
+		System.out.println("Waiting for test message from client 1");
+		System.out.println(Server.recieve(1)); // input test
+		Server.send("Server to client 1\n", 1); // output test
+		System.out.print("S2C1 sent, P1 ready\n");
 
 		// Player two socket, data in, and data out set up
 		Server.client_2 = Server.welcomeSocket.accept();
@@ -78,9 +80,12 @@ public class Server {
 					+ ") has joined ... lets start ...");
 		}
 		Server.outClient_2 = new DataOutputStream(Server.client_2.getOutputStream());
+		System.out.println("Successfully set up outgoing comms with client 2");
 		Server.inClient_2 = new BufferedReader(new InputStreamReader(Server.client_2.getInputStream()));
+		System.out.println("Successfully set up incoming comms with client 2");
 
-		// Testing input and output to and from client
+		// Testing input and output to and from client 2
+		System.out.println("Waiting for test message from client 1");
 		System.out.println(Server.recieve(2)); // input test
 		Server.send("Server to client 2\n", 2); // output test
 		System.out.print("S2C2 sent, P2 ready\n");

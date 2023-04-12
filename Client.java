@@ -30,16 +30,14 @@ class Client {
 		boolean autoFlip = getAuto();
 
 		// initializing the client socket, output to server and input from server
-		clientSocket = new Socket("192.168.86.133", Client.port);
+		clientSocket = new Socket("localhost", Client.port);
 		outToServer = new DataOutputStream(clientSocket.getOutputStream());
 		inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-		/*
-		 * Client.send("Client to server test" + "\n"); // output test
-		 * System.out.print("\nClient to server test msg sent\n"); response =
-		 * Client.recieve(); // input test
-		 * System.out.print("Test msg from server recieved: " + response + "\n");
-		 */
+		Client.send("Client to server test" + "\n"); // output test
+		System.out.print("\nClient to server test msg sent\n");
+		response = Client.recieve(); // input test
+		System.out.print("Test msg from server recieved: " + response + "\n");
 
 		System.out.print("Ready to begin. Press enter to start game");
 		System.in.read();

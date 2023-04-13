@@ -1,319 +1,331 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.*;
 import java.util.Enumeration;
 import java.util.Scanner;
 
 public class Server {
 
-	private static Deck master;
-	private static Deck p1;
-	private static Deck p2;
-	private static Deck p1discard;
-	private static Deck p2discard;
-	private static ServerSocket welcomeSocket;
-	private static Socket client_1, client_2;
-	private static DataOutputStream outClient_1, outClient_2;
-	private static BufferedReader inClient_1, inClient_2;
-	private static Integer port = 1337;
-	private static String welcomeMsg = "Welcome to the card game 'War'.\n";
-	// private static String ip;
+    private static Deck gameDeck;
+    private static Deck p1hand;
+    private static Deck p2hand;
+    private static Deck p1discard;
+    private static Deck p2discard;
 
-	public static void main(String[] args) throws InterruptedException, IOException {
+    private static ServerSocket serverSocket;
 
-		// initialize the decks
-		master = new Deck(true);
-		p1 = new Deck(false);
-		p2 = new Deck(false);
-		p1discard = new Deck(false);
-		p2discard = new Deck(false);
+    private static Socket socket1, socket2;
 
-		// Printing welcome message
-		System.out.println(Server.welcomeMsg);
+    private static DataOutputStream outClient_1, outClient_2;
+    private static BufferedReader inClient_1, inClient_2;
 
-		System.out.print("Server network information:\n");
-		@SuppressWarnings("rawtypes")
-		Enumeration e = NetworkInterface.getNetworkInterfaces();
-		while (e.hasMoreElements()) {
-			NetworkInterface n = (NetworkInterface) e.nextElement();
-			@SuppressWarnings("rawtypes")
-			Enumeration ee = n.getInetAddresses();
-			while (ee.hasMoreElements()) {
-				InetAddress i = (InetAddress) ee.nextElement();
-				System.out.println(i.getHostAddress());
-			}
-		}
+    private static final String WELCOME_MSG = "Welcome to the card game 'War'.\n";
 
-		// Setting up server socket on specified port
-		Server.port = Server.getPort();
-		Server.welcomeSocket = new ServerSocket(Server.port);
-		System.out.println("\nOk, we're up and running on port: " + Server.welcomeSocket.getLocalPort() + " ...");
+    public static void main(String[] args) throws IOException {
 
-		// Dealing cards to each player
-		for (int j = 0; j < 26; j++) { // deal first half of the deck to p1
-			Server.p1.push(Server.master.pop());
-		}
-		for (int j = 0; j < 26; j++) { // deal first half of the deck to p1
-			Server.p2.push(Server.master.pop());
-		}
+        // Printing welcome message
+        System.out.println(Server.WELCOME_MSG);
 
-		// Player one socket, data in, and data out set up
-		Server.client_1 = Server.welcomeSocket.accept();
-		if (Server.client_1.isConnected()) {
-			System.out.println("\nPlayer one (" + (Server.client_1.getRemoteSocketAddress().toString()).substring(1)
-					+ ":" + Server.client_1.getLocalPort() + ") has joined ... waiting for player two ...");
-		}
-		Server.outClient_1 = new DataOutputStream(Server.client_1.getOutputStream());
-		System.out.println("Successfully set up outgoing comms with client 1");
-		Server.inClient_1 = new BufferedReader(new InputStreamReader(Server.client_1.getInputStream()));
-		System.out.println("Successfully set up incoming comms with client 1");
+        // initialize the decks
+        p1hand = new Deck();
+        p2hand = new Deck();
 
-		// Testing input and output to and from client 2
-		System.out.println("Waiting for test message from client 1");
-		System.out.println(Server.recieve(1)); // input test
-		Server.send("Server to client 1\n", 1); // output test
-		System.out.print("S2C1 sent, P1 ready\n");
+        p1discard = new Deck();
+        p2discard = new Deck();
 
-		// Player two socket, data in, and data out set up
-		Server.client_2 = Server.welcomeSocket.accept();
-		if (Server.client_2.isConnected()) {
-			System.out.println("Player two (" + (Server.client_2.getRemoteSocketAddress().toString()).substring(1)
-					+ ") has joined ... lets start ...");
-		}
-		Server.outClient_2 = new DataOutputStream(Server.client_2.getOutputStream());
-		System.out.println("Successfully set up outgoing comms with client 2");
-		Server.inClient_2 = new BufferedReader(new InputStreamReader(Server.client_2.getInputStream()));
-		System.out.println("Successfully set up incoming comms with client 2");
+        gameDeck = new Deck();
+        gameDeck.fill();
+        gameDeck.shuffle();
 
-		// Testing input and output to and from client 2
-		System.out.println("Waiting for test message from client 1");
-		System.out.println(Server.recieve(2)); // input test
-		Server.send("Server to client 2\n", 2); // output test
-		System.out.print("S2C2 sent, P2 ready\n");
+        // Dealing half of the cards to each player
+        for (int j = 0; j < 52; j++) {
+            if (j % 2 == 0) {
+                Server.p1hand.push(Server.gameDeck.pop());
+            } else {
+                Server.p2hand.push(Server.gameDeck.pop());
+            }
+        }
+        Utils.assertTrue(p1hand.length() == p2hand.length(), "P1 and P2 had unequal hands after dealing");
 
-		String temp = "Game starting\n";
-		System.out.print(temp);
-		Server.send(temp, 3);
+        printServerIP();
 
-		boolean game = true; // flag to stop the game loop
-		int count = 0; // round counter
-		String round; // round message
-		String p1Send; // outgoing string to player 1
-		String p2Send; // outgoing string to player 2
+        // Setting up server socket on specified port
+        int port;
+        try (Scanner scanner = new Scanner(System.in)) {
+            port = Utils.getPort(scanner, 1337);
+        }
+        Server.serverSocket = new ServerSocket(port);
+        System.out.println("\nServer is running on port: " + Server.serverSocket.getLocalPort() + " ...");
 
-		// Main game loop
-		while (game) {
-			// print round # to server and both clients
-			round = "ROUND #" + count + "\n";
-			Server.send(round, 3);
-			System.out.print(round);
-			count++;
+        // Player one socket, data in, and data out set up
+        Server.socket1 = Server.serverSocket.accept();
+        if (Server.socket1.isConnected()) {
+            System.out.println("\nPlayer one (" + (Server.socket1.getRemoteSocketAddress().toString()).substring(1)
+                    + ":" + Server.socket1.getLocalPort() + ") has joined ... waiting for player two ...");
+        }
+        Server.outClient_1 = new DataOutputStream(Server.socket1.getOutputStream());
+        System.out.println("Successfully set up client 1 output stream");
+        Server.inClient_1 = new BufferedReader(new InputStreamReader(Server.socket1.getInputStream()));
+        System.out.println("Successfully set up client 1 input stream");
 
-			endGameCheck(1); // check if end game conditions are met
+        testClientServerCommunication(1);
 
-			p1Send = "P1, press enter to flip card. You have " + Server.p1.length() + " cards in hand, "
-					+ Server.p1discard.length() + " cards in discard pile.\n";
-			p2Send = "P2, press enter to flip card. You have " + Server.p2.length() + " cards in hand, "
-					+ Server.p2discard.length() + " cards in discard pile.\n";
+        // Player two socket, data in, and data out set up
+        Server.socket2 = Server.serverSocket.accept();
+        if (Server.socket2.isConnected()) {
+            System.out.println("Player two (" + (Server.socket2.getRemoteSocketAddress().toString()).substring(1)
+                    + ") has joined ... lets start ...");
+        }
+        Server.outClient_2 = new DataOutputStream(Server.socket2.getOutputStream());
+        System.out.println("Successfully set up client 2 output stream");
+        Server.inClient_2 = new BufferedReader(new InputStreamReader(Server.socket2.getInputStream()));
+        System.out.println("Successfully set up client 2 input stream");
 
-			// send message to client
-			Server.send(p1Send, 1);
-			Server.send(p2Send, 2);
+        testClientServerCommunication(2);
 
-			// print message to server
-			System.out.print(p1Send + p2Send);
+        final String startingGame = "Game starting\n";
+        System.out.print(startingGame);
+        Server.send(startingGame, 3);
 
-			// wait for response
-			Server.recieve(1);
-			Server.recieve(2);
+        boolean game = true; // flag to stop the game loop
+        int count = 0; // round counter
+        String round; // round message
+        String p1Send; // outgoing string to player 1
+        String p2Send; // outgoing string to player 2
 
-			// flip top card on deck
-			String p1in = Server.p1.pop();
-			String p2in = Server.p2.pop();
+        // Main game loop
+        while (game) {
+            // print round # to server and both clients
+            round = "ROUND #" + count + "\n";
+            Server.send(round, 3);
+            System.out.print(round);
+            count++;
 
-			// compare the cards
-			whoWins(p1in, p2in);
-		}
+            endGameCheck(1); // check if end game conditions are met
 
-		// close sockets
-		Server.client_1.close();
-		Server.client_2.close();
-		Server.welcomeSocket.close();
+            p1Send = "P1, press enter to flip card. You have " + Server.p1hand.length() + " cards in hand, "
+                    + Server.p1discard.length() + " cards in discard pile.\n";
+            p2Send = "P2, press enter to flip card. You have " + Server.p2hand.length() + " cards in hand, "
+                    + Server.p2discard.length() + " cards in discard pile.\n";
 
-	}
+            // send message to client
+            Server.send(p1Send, 1);
+            Server.send(p2Send, 2);
 
-	// sends strings to client sockets
-	// input the msg as String
-	// input int n: 1 to send to P1, 2 for P2 and 3 to send to both
-	public static void send(String input, int n) throws IOException {
-		if (n == 1) {
-			Server.outClient_1.writeBytes(input);
-			Server.outClient_1.flush();
-		} else if (n == 2) {
-			Server.outClient_2.writeBytes(input);
-			Server.outClient_2.flush();
-		} else if (n == 3) {
-			Server.send(input, 1);
-			Server.send(input, 2);
-		} else {
-			System.out.print("Error in Server.send");
-		}
-	}
+            // print message to server
+            System.out.print(p1Send + p2Send);
 
-	// receives input from specified client
-	public static String recieve(int n) throws IOException {
-		if (n == 1) {
-			return Server.inClient_1.readLine();
-		} else if (n == 2) {
-			return Server.inClient_2.readLine();
-		} else {
-			return "Error in Server.recieve";
-		}
-	}
+            // wait for response
+            Server.receive(1);
+            Server.receive(2);
 
-	@SuppressWarnings("rawtypes")
-	public static String getIp() throws SocketException {
-		Enumeration e = NetworkInterface.getNetworkInterfaces();
-		NetworkInterface n = (NetworkInterface) e.nextElement();
-		Enumeration ee = n.getInetAddresses();
-		InetAddress i = (InetAddress) ee.nextElement();
-		i = (InetAddress) ee.nextElement();
-		return i.getHostAddress();
-	}
+            // flip top card on deck
+            String p1in = Server.p1hand.pop();
+            String p2in = Server.p2hand.pop();
 
-	// function to determine which player wins a round
-	// input: 2 strings to represent the cards
-	// output: boolean 1 for P1 win and 0 for P2 win
-	public static boolean whoWins(String p1in, String p2in) throws IOException {
+            // compare the cards
+            whoWins(p1in, p2in);
+        }
 
-		// print result to server and both clients
-		String response = "P1 flipped " + Deck.getString(p1in) + " and P2 flipped " + Deck.getString(p2in) + "\n";
-		System.out.print(response);
-		Server.send(response, 3);
+        // close sockets
+        Server.socket1.close();
+        Server.socket2.close();
+        Server.serverSocket.close();
 
-		// compare the cards to see which wins
-		int result = Deck.compare(p1in, p2in);
+    }
 
-		if (result == -1) { // if P2's card is higher value
-			response = "P2 wins\n\n";
-			System.out.print(response);
-			Server.send(response, 3);
-			Server.p2discard.push(p1in);
-			Server.p2discard.push(p2in);
-			return true;
-		} else if (result == 1) { // if P2's card is higher value
-			response = "P1 wins\n\n";
-			System.out.print(response);
-			Server.send(response, 3);
-			Server.p1discard.push(p1in);
-			Server.p1discard.push(p2in);
-			return false;
-		} else { // if the cards tie then the players enter war
-			// print to server and both clients
-			response = "Tie! Time for war!\n";
-			System.out.print(response);
-			Server.send(response, 3);
+    /**
+     * Ensures the server can send and receive messages from the client
+     *
+     * @param clientNum which client to test
+     */
+    private static void testClientServerCommunication(int clientNum) throws IOException {
+        Utils.assertTrue(clientNum == 1 || clientNum == 2);
+        System.out.println("Waiting for test message from client " + clientNum);
+        System.out.println("Message from client: " + Server.receive(clientNum)); // input test
+        Server.send("Server to client " + clientNum + "\n", clientNum); // output test
+        System.out.print("Server to client " + clientNum + " success. Player " + clientNum + " ready.\n");
+    }
 
-			endGameCheck(4); // check if both players have enough cards for war
+    /**
+     * Prints the current machines local ip address to System out
+     */
+    private static void printServerIP() throws SocketException {
+        System.out.print("Server network information:\n");
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+            NetworkInterface networkInterface = interfaces.nextElement();
+            Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+            while (addresses.hasMoreElements()) {
+                InetAddress address = addresses.nextElement();
+                if (address.isSiteLocalAddress()) {
+                    System.out.println(address.getHostAddress());
+                }
+            }
+        }
+    }
 
-			// prompt players to flip their cards
-			response = "P1, press enter to start war. You have " + Server.p1.length() + " cards in hand, "
-					+ Server.p1discard.length() + " cards in discard pile.\n";
-			System.out.print(response);
-			Server.send(response, 1);
-			response = Server.recieve(1);
-			// flip 4 cards from P1
-			String[] temp1 = new String[4];
-			temp1[0] = Server.p1.pop();
-			temp1[1] = Server.p1.pop();
-			temp1[2] = Server.p1.pop();
-			temp1[3] = Server.p1.pop();
-			response = "P2, press enter to start war. You have " + Server.p2.length() + " cards in hand, "
-					+ Server.p2discard.length() + " cards in discard pile.\n";
-			System.out.print(response);
-			Server.send(response, 2);
-			response = Server.recieve(2);
-			// flip 4 cards from P1
-			String[] temp2 = new String[4];
-			temp2[0] = Server.p2.pop();
-			temp2[1] = Server.p2.pop();
-			temp2[2] = Server.p2.pop();
-			temp2[3] = Server.p2.pop();
-			// compare the top card from each player then distribute cards accordingly
-			boolean temp = whoWins(temp1[3], temp2[3]);
-			if (!temp) {
-				for (int i = 0; i < 4; i++) {
-					Server.p1discard.push(temp1[i]);
-					Server.p1discard.push(temp2[i]);
-				}
-			} else {
-				for (int i = 0; i < 4; i++) {
-					Server.p2discard.push(temp1[i]);
-					Server.p2discard.push(temp2[i]);
-				}
-			}
-			return temp;
-		}
-	}
+    /**
+     * Sends strings to client sockets
+     *
+     * @param message        the message to send
+     * @param playerToSendTo which client to send to. 1 for P1, 2 for P2, 3 for both
+     */
+    public static void send(String message, int playerToSendTo) throws IOException {
+        if (playerToSendTo == 1) {
+            Server.outClient_1.writeBytes(message);
+            Server.outClient_1.flush();
+        } else if (playerToSendTo == 2) {
+            Server.outClient_2.writeBytes(message);
+            Server.outClient_2.flush();
+        } else if (playerToSendTo == 3) {
+            Server.send(message, 1);
+            Server.send(message, 2);
+        } else {
+            System.out.print("Error in Server.send");
+        }
+    }
 
-	// checks to see whether both players have enough cards to continue play
-	public static void endGameCheck(int n) throws IOException {
-		String response;
-		if (Server.p1.length() < n) {
-			if ((Server.p1.length() + Server.p1discard.length()) < n) {
-				// game over
-				response = "Game over. P1 ran out of cards and P2 wins!\n";
-				System.out.print(response);
-				try {
-					Server.send(response, 3);
-				} catch (Exception IOException) {
-					System.out.print("\nTerminating program");
-				}
-				System.exit(0);
-			} else {
-				response = "Not enough cards. Reshuffling P1's discard into thier hand";
-				Server.send(response, 1);
-				Server.p1.reShuffle(Server.p1discard);
-			}
+    /**
+     * Attempts to read the next line from given client
+     *
+     * @param clientToRead the client to read from. 1 for P1, 2 for P2
+     * @return A String containing the message received from the client
+     */
+    public static String receive(int clientToRead) throws IOException {
+        if (clientToRead == 1) {
+            return Server.inClient_1.readLine();
+        } else if (clientToRead == 2) {
+            return Server.inClient_2.readLine();
+        } else {
+            return "Error in Server.receive";
+        }
+    }
 
-		}
-		if (Server.p2.length() < n) {
-			if ((Server.p2.length() + Server.p2discard.length()) < n) {
-				// game over
-				response = "Game over. P2 ran out of cards and P1 wins!\n";
-				System.out.print(response);
-				try {
-					Server.send(response, 3);
-				} catch (Exception IOException) {
-					System.out.print("\nTerminating program");
-				}
-				System.exit(0);
-			} else {
-				response = "Not enough cards. Reshuffling P1's discard into thier hand\n";
-				Server.send(response, 2);
-				Server.p2.reShuffle(Server.p2discard);
-			}
-		}
-	}
+    /**
+     * Determine which player wins a round
+     *
+     * @param player1card first player to assess
+     * @param player2card second player to assess
+     * @return true if player 2 wins, else false
+     */
+    public static boolean whoWins(String player1card, String player2card) throws IOException {
 
-	// checks that input port number is valid
-	public static boolean validPort(Integer x) {
-		return x >= 1 && x <= 65535 ? true : false;
-	}
+        // print result to server and both clients
+        String message = "P1 flipped " + Deck.getString(player1card) + " and P2 flipped " + Deck.getString(player2card) + "\n";
+        System.out.print(message);
+        Server.send(message, 3);
 
-	// gets port from user
-	public static int getPort() {
-		Integer input;
-		Scanner sc = new Scanner(System.in);
+        // compare the cards to see which wins
+        int result = Integer.compare(Deck.getValue(player1card), Deck.getValue(player2card));
 
-		do {
-			System.out.print("\nPlease select a port by entering an integer value between 1 and 65535 or\n");
-			System.out.print("insert \"0\" in order to continue with the default port (" + Server.port + "): ");
-			input = sc.nextInt();
+        if (result == -1) { // if P2's card is higher value
+            message = "P2 wins\n\n";
+            System.out.print(message);
+            Server.send(message, 3);
+            Server.p2discard.push(player1card);
+            Server.p2discard.push(player2card);
+            return true;
+        } else if (result == 1) { // if P2's card is higher value
+            message = "P1 wins\n\n";
+            System.out.print(message);
+            Server.send(message, 3);
+            Server.p1discard.push(player1card);
+            Server.p1discard.push(player2card);
+            return false;
+        } else { // if the cards tie then the players enter war
+            // print to server and both clients
+            message = "Tie! Time for war!\n";
+            System.out.print(message);
+            Server.send(message, 3);
 
-		} while (input != 0 && !Server.validPort(input));
+            endGameCheck(4); // check if both players have enough cards for war
 
-		sc.close();
+            // prompt players to flip their cards
+            message = "P1, press enter to start war. You have " + Server.p1hand.length() + " cards in hand, "
+                    + Server.p1discard.length() + " cards in discard pile.\n";
+            System.out.print(message);
+            Server.send(message, 1);
+            message = Server.receive(1);
+            // flip 4 cards from P1
+            String[] temp1 = new String[4];
+            temp1[0] = Server.p1hand.pop();
+            temp1[1] = Server.p1hand.pop();
+            temp1[2] = Server.p1hand.pop();
+            temp1[3] = Server.p1hand.pop();
+            message = "P2, press enter to start war. You have " + Server.p2hand.length() + " cards in hand, "
+                    + Server.p2discard.length() + " cards in discard pile.\n";
+            System.out.print(message);
+            Server.send(message, 2);
+            message = Server.receive(2);
+            // flip 4 cards from P1
+            String[] temp2 = new String[4];
+            temp2[0] = Server.p2hand.pop();
+            temp2[1] = Server.p2hand.pop();
+            temp2[2] = Server.p2hand.pop();
+            temp2[3] = Server.p2hand.pop();
+            // compare the top card from each player then distribute cards accordingly
+            boolean temp = whoWins(temp1[3], temp2[3]);
+            if (!temp) {
+                for (int i = 0; i < 4; i++) {
+                    Server.p1discard.push(temp1[i]);
+                    Server.p1discard.push(temp2[i]);
+                }
+            } else {
+                for (int i = 0; i < 4; i++) {
+                    Server.p2discard.push(temp1[i]);
+                    Server.p2discard.push(temp2[i]);
+                }
+            }
+            return temp;
+        }
+    }
 
-		return input == 0 ? Server.port : input;
-	}
+    /**
+     * checks to see whether both players have enough cards to continue play
+     *
+     * @param cardsNeeded the number of cards needed to continue play
+     */
+    public static void endGameCheck(int cardsNeeded) throws IOException {
+        String response;
+        if (Server.p1hand.length() < cardsNeeded) {
+            if ((Server.p1hand.length() + Server.p1discard.length()) < cardsNeeded) {
+                // game over
+                response = "Game over. P1 ran out of cards and P2 wins!\n";
+                System.out.print(response);
+                try {
+                    Server.send(response, 3);
+                } catch (Exception IOException) {
+                    System.out.print("\nTerminating program");
+                }
+                System.exit(0);
+            } else {
+                response = "Not enough cards. Reshuffling P1's discard pile into their hand\n";
+                Server.send(response, 1);
+                Server.p1hand.combine(Server.p1discard);
+                Server.p1hand.shuffle();
+            }
+
+        }
+        if (Server.p2hand.length() < cardsNeeded) {
+            if ((Server.p2hand.length() + Server.p2discard.length()) < cardsNeeded) {
+                // game over
+                response = "Game over. P2 ran out of cards and P1 wins!\n";
+                System.out.print(response);
+                try {
+                    Server.send(response, 3);
+                } catch (Exception IOException) {
+                    System.out.print("\nTerminating program");
+                }
+                System.exit(0);
+            } else {
+                response = "Not enough cards. Reshuffling P1's discard into their hand\n";
+                Server.send(response, 2);
+                Server.p2hand.combine(Server.p2discard);
+                Server.p2hand.shuffle();
+            }
+        }
+    }
 }

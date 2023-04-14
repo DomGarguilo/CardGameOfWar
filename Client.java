@@ -1,65 +1,7 @@
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.Socket;
 import java.util.Objects;
 import java.util.Scanner;
 
 class Client {
-
-    /**
-     * Object to encapsulate the communication to and from the server.
-     */
-    private static class ServerConnection implements AutoCloseable {
-
-        private final Socket clientSocket;
-        private final DataOutputStream outToServer;
-        private final InputStreamReader inputStreamReader;
-        private final BufferedReader inFromServer;
-
-        public ServerConnection(String host, int port) throws IOException {
-            this.clientSocket = new Socket(host, port);
-            this.outToServer = new DataOutputStream(clientSocket.getOutputStream());
-            this.inputStreamReader = new InputStreamReader(clientSocket.getInputStream());
-            this.inFromServer = new BufferedReader(inputStreamReader);
-        }
-
-        /**
-         * Sends a String to the server
-         *
-         * @param message String to send to the server
-         */
-        private void sendMsgToServer(String message) throws IOException {
-            this.outToServer.writeBytes(message);
-            this.outToServer.flush();
-        }
-
-        /**
-         * Reads a line from the given BufferedReader
-         *
-         * @return A String of the line read from the reader
-         */
-        private String receiveMsgFromServer() throws IOException {
-            return this.inFromServer.readLine();
-        }
-
-        @Override
-        public void close() throws Exception {
-            if (clientSocket != null) {
-                clientSocket.close();
-            }
-            if (inFromServer != null) {
-                inFromServer.close();
-            }
-            if (inputStreamReader != null) {
-                inputStreamReader.close();
-            }
-            if (outToServer != null) {
-                outToServer.close();
-            }
-        }
-    }
 
     public static final String GAME_OVER = "Game over.";
     public static final String PRESS_ENTER = "press enter";
@@ -82,16 +24,12 @@ class Client {
             final int port = Utils.getPort(clientInputScanner, 1337);
             final boolean autoFlip = getAutoFlip(clientInputScanner);
 
-            // initializing the client socket, output to server and input from server
-            try (ServerConnection serverConnection = new ServerConnection(host, port)) {
-
-                serverConnection.sendMsgToServer("Client to server test\n"); // output test
-                System.out.print("\nClient to server test msg sent\n");
-                response = serverConnection.receiveMsgFromServer(); // input test
-                System.out.print("Test msg from server received: " + response + "\n");
+            // This SocketConnection object is used to communicate with the server via a socket
+            try (SocketConnection serverConnection = new SocketConnection(host, port)) {
 
                 System.out.print("Ready to begin. Press enter to start game");
                 var ignore = System.in.read(); // wait for user to press enter
+                System.out.println("Waiting to receive start game msg from server");
 
                 // Constantly listening for messages from the server
                 while ((response = serverConnection.receiveMsgFromServer()) != null) {
@@ -101,6 +39,7 @@ class Client {
 
                     // Check if game has ended
                     if (response.contains(GAME_OVER)) {
+                        System.out.println("Game over msg received from Server");
                         break;
                     }
                     if (response.contains(PRESS_ENTER)) {

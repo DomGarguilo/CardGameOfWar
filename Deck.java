@@ -1,4 +1,3 @@
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 
@@ -12,17 +11,22 @@ public class Deck {
         this.deck = new LinkedList<>();
     }
 
-    //gets in value of a card
+    /**
+     * @param card card to get value of
+     * @return the numeric value of the given card
+     */
     public static int getValue(String card) {
         return Integer.parseInt(card.replaceAll("([A-Z])", ""));
     }
 
-    // prints the card e.g. 11H -> Jack of Hearts
+    /**
+     * Gets a String value from shorthand (e.g. 11H -> Jack of Hearts).
+     *
+     * @param card the card to return the string value of
+     * @return String value of a card
+     */
     public static String getString(String card) {
         String suit = String.valueOf(card.charAt(card.length() - 1));
-        //card = card.replaceAll(suit, "");
-        int num = getValue(card);
-        String val = "";
         switch (suit) {
             case "H":
                 suit = "Hearts";
@@ -38,7 +42,8 @@ public class Deck {
                 break;
         }
 
-        val = String.valueOf(num);
+        int num = getValue(card);
+        String val = String.valueOf(num);
         switch (num) {
             case 1:
                 val = "Ace";
@@ -56,15 +61,27 @@ public class Deck {
         return val + " of " + suit;
     }
 
+    /**
+     * Adds a card to this Deck
+     *
+     * @param input card to add
+     */
     public void push(String input) {
         this.deck.add(input);
     }
 
+    /**
+     * Removes the top card from this Deck and returns it
+     *
+     * @return the top card from this Deck
+     */
     public String pop() {
         return this.deck.removeFirst();
     }
 
-    // fill deck with card values 1-14 (1-Ace)
+    /**
+     * fill deck with card values 1-13 (Ace-King)
+     */
     public void fill() {
         for (int i = 1; i <= 13; i++) {
             this.deck.push(i + "H"); // hearts
@@ -81,10 +98,6 @@ public class Deck {
 
     public int length() {
         return this.deck.size();
-    }
-
-    public void print() {
-        System.out.println(Arrays.toString(this.deck.toArray()));
     }
 
     /**

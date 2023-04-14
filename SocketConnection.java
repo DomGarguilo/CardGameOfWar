@@ -16,14 +16,15 @@ public class SocketConnection implements AutoCloseable {
     private final BufferedReader input;
 
     public SocketConnection(String host, int port) throws IOException {
-        this.socket = new Socket(host, port);
-        this.output = new DataOutputStream(socket.getOutputStream());
-        this.inputStreamReader = new InputStreamReader(socket.getInputStream());
-        this.input = new BufferedReader(inputStreamReader);
+        this(new Socket(host, port));
     }
 
     public SocketConnection(ServerSocket serverSocket) throws IOException {
-        this.socket = serverSocket.accept();
+        this(serverSocket.accept());
+    }
+
+    private SocketConnection(Socket socket) throws IOException {
+        this.socket = socket;
         this.output = new DataOutputStream(socket.getOutputStream());
         this.inputStreamReader = new InputStreamReader(socket.getInputStream());
         this.input = new BufferedReader(inputStreamReader);
@@ -48,6 +49,14 @@ public class SocketConnection implements AutoCloseable {
         return this.input.readLine();
     }
 
+    public boolean socketIsConnected() {
+        return this.socket.isConnected();
+    }
+
+    public String getAddress() {
+        return socket.getRemoteSocketAddress().toString();
+    }
+
     @Override
     public void close() throws Exception {
         if (socket != null) {
@@ -62,14 +71,6 @@ public class SocketConnection implements AutoCloseable {
         if (output != null) {
             output.close();
         }
-    }
-
-    public boolean socketIsConnected() {
-        return this.socket.isConnected();
-    }
-
-    public String getAddress() {
-        return socket.getRemoteSocketAddress().toString();
     }
 
 }

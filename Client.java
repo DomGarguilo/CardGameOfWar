@@ -13,8 +13,6 @@ class Client {
 
     public static void main(String[] args) throws Exception {
 
-        String input, response;
-
         System.out.print(Client.WELCOME_MSG);
         System.out.print(Client.RULES_MSG);
 
@@ -30,6 +28,8 @@ class Client {
                 System.out.print("Ready to begin. Press enter to start game");
                 var ignore = System.in.read(); // wait for user to press enter
                 System.out.println("Waiting to receive start game msg from server");
+
+                String input, response;
 
                 // Constantly listening for messages from the server
                 while ((response = serverConnection.receiveMsgFromServer()) != null) {
@@ -53,6 +53,8 @@ class Client {
                                 + " Waiting on result from the server...");
                     }
                 }
+            } finally {
+                System.out.print("\n Server SocketConnection closed");
             }
         } finally {
             System.out.print("\nClient program ended\n");
@@ -88,7 +90,7 @@ class Client {
             input = Character.toUpperCase(inputScanner.next().charAt(0));
             result = (input == 'Y') ? Boolean.TRUE : (input == 'N') ? Boolean.FALSE : null;
         } while (result == null);
-        System.out.print(result ? "Autoflip enabled\n" : "Autoflip disabled\n");
+        System.out.print(result ? "Auto-flip enabled\n" : "Auto-flip disabled\n");
         return result;
     }
 

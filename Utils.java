@@ -28,10 +28,6 @@ public class Utils {
         return port >= 1 && port <= 65535;
     }
 
-    static void assertTrue(boolean condition) {
-        assertTrue(condition, "");
-    }
-
     static void assertTrue(boolean condition, String msg) {
         if (!condition) {
             throw new RuntimeException(msg);
